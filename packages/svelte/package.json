@@ -33,6 +33,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "svelte": "./dist/server.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "svelte": "./dist/testing.js"
     }
   },
   "scripts": {
@@ -42,21 +46,25 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "dev": "pnpm package --watch",
     "es2022-check": "pnpm build:with-deps && es-check es2022 \"dist/**/*.js\" --checkFeatures --module --noCache --verbose",
-    "package": "svelte-kit sync && svelte-package --input src"
+    "package": "svelte-kit sync && svelte-package --input src",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/package": "^2.5.7",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "@vitest/browser-playwright": "4.1.11",
     "axios": "^1.20.0",
     "es-check": "9.5.3",
+    "playwright": "1.58.2",
     "publint": "^0.3.17",
     "svelte": "^5.56.4",
     "svelte-check": "^4.4.8",
     "tslib": "^2.8.1",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"

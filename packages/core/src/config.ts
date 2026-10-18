@@ -1,3 +1,4 @@
+import { cloneDeep } from 'es-toolkit'
 import { get, has, set } from 'es-toolkit/compat'
 import { InertiaAppConfig } from './types'
 
@@ -46,6 +47,17 @@ export class Config<TConfig extends {} = {}> {
     }
 
     return this as unknown as Config<TConfig & TExtension>
+  }
+
+  /** @internal Used by test scopes to undo config changes made inside them. */
+  public snapshot(): VoidFunction {
+    const config = cloneDeep(this.config)
+    const defaults = cloneDeep(this.defaults)
+
+    return () => {
+      this.config = config
+      this.defaults = defaults
+    }
   }
 
   public replace(newConfig: FirstLevelOptional<TConfig>): void {

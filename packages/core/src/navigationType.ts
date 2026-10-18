@@ -1,3 +1,5 @@
+import { environment } from './environment'
+
 class NavigationType {
   protected type: NavigationTimingType
 
@@ -16,15 +18,15 @@ class NavigationType {
   }
 
   public get(): NavigationTimingType {
-    return this.type
+    return environment.history().navigationType ?? this.type
   }
 
   public isBackForward(): boolean {
-    return this.type === 'back_forward'
+    return this.get() === 'back_forward'
   }
 
   public isReload(): boolean {
-    return this.type === 'reload'
+    return this.get() === 'reload'
   }
 }
 

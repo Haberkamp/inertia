@@ -1,15 +1,17 @@
+import { environment } from './environment'
+
 export class SessionStorage {
   public static locationVisitKey = 'inertiaLocationVisit'
 
   public static set(key: string, value: any): void {
     if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(key, JSON.stringify(value))
+      environment.sessionStorage().setItem(key, JSON.stringify(value))
     }
   }
 
   public static get(key: string): any {
     if (typeof window !== 'undefined') {
-      return JSON.parse(window.sessionStorage.getItem(key) || 'null')
+      return JSON.parse(environment.sessionStorage().getItem(key) || 'null')
     }
   }
 
@@ -25,7 +27,7 @@ export class SessionStorage {
 
   public static remove(key: string): void {
     if (typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(key)
+      environment.sessionStorage().removeItem(key)
     }
   }
 
@@ -49,7 +51,7 @@ export class SessionStorage {
 
   public static clear(): void {
     if (typeof window !== 'undefined') {
-      window.sessionStorage.clear()
+      environment.sessionStorage().clear()
     }
   }
 }

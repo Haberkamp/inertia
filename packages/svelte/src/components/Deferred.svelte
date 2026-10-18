@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { isSameUrlWithoutQueryOrHash, router, partialReloadRequestsSomeProps } from '@inertiajs/core'
+  import { currentLocation, isSameUrlWithoutQueryOrHash, router, partialReloadRequestsSomeProps } from '@inertiajs/core'
   import { get } from 'es-toolkit/compat'
   import { page } from '../index'
 
@@ -26,7 +26,7 @@
 
       if (
         visit.preserveState === true &&
-        isSameUrlWithoutQueryOrHash(visit.url, window.location) &&
+        isSameUrlWithoutQueryOrHash(visit.url, currentLocation()) &&
         partialReloadRequestsSomeProps(visit, keys)
       ) {
         activeReloads.add(visit)

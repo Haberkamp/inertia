@@ -1,5 +1,7 @@
 import { Config } from './config'
+import { environment } from './environment'
 import { Router } from './router'
+import { createTestScope as createScope, testScopeOwnership, type TestScope, type TestScopeOptions } from './testScope'
 
 export { UseFormUtils } from './useFormUtils'
 
@@ -44,3 +46,41 @@ export { XhrHttpClient, xhrHttpClient } from './xhrHttpClient'
 export { type Config, type Router }
 
 export const router = new Router()
+
+/** @internal Use `@inertiajs/core/testing` instead. */
+export { MemoryHistory } from './environment'
+/** @internal Use `@inertiajs/core/testing` instead. */
+export {
+  back,
+  createFakeServer,
+  defer,
+  errors,
+  json,
+  location,
+  optional,
+  redirect,
+  response,
+  type FakeHandler,
+  type FakePage,
+  type FakeRequest,
+  type FakeRequestLog,
+  type FakeResult,
+  type FakeRoutes,
+  type FakeServer,
+  type FakeServerOptions,
+} from './fakeServer'
+/** @internal Use `@inertiajs/core/testing` instead. */
+export { activeTestScope, onTestScopeReset, type TestPage, type TestScope, type TestScopeOptions } from './testScope'
+/** @internal The current URL: the browser's location, or the in-memory one inside a test scope. */
+export const currentLocation = (): Location | URL => environment.location()
+
+/** @internal Use `createTestScope` from `@inertiajs/core/testing` instead. */
+export const createTestScope = (options?: TestScopeOptions): TestScope => createScope(router, options)
+
+/** @internal Used by the adapters' test components. */
+export const testScopes = {
+  acquire: (owner: object, options: TestScopeOptions = {}): TestScope =>
+    testScopeOwnership.acquire(router, owner, options),
+  mount: (owner: object): void => testScopeOwnership.mount(owner),
+  release: (owner: object): void => testScopeOwnership.release(owner),
+}

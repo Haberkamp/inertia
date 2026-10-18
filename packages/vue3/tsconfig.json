@@ -1,5 +1,5 @@
 {
-  "include": ["src/index.ts", "src/server.ts"],
+  "include": ["src/index.ts", "src/server.ts", "src/testing.ts"],
   "compilerOptions": {
     "rootDir": "src",
     "noEmitOnError": true,

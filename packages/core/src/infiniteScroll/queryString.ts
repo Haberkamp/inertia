@@ -6,11 +6,20 @@ import Queue from './../queue'
 import { getPageFromElement } from './elements'
 
 // Shared queue among all instances to ensure URL updates are processed sequentially
-const queue = new Queue<Promise<void>>()
+let queue = new Queue<Promise<void>>()
 
 let initialUrl: URL | null
 let payloadUrl: URL | null
 let initialUrlWasAbsolute: boolean | null = null
+
+/**
+ * Forgets the URL being tracked. Only used when switching between isolated test scopes.
+ */
+export const resetInfiniteScrollQueryString = (): void => {
+  queue = new Queue<Promise<void>>()
+  initialUrl = payloadUrl = null
+  initialUrlWasAbsolute = null
+}
 
 /**
  * As users scroll through infinite content, this system updates the URL to reflect

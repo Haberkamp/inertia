@@ -1,0 +1,26 @@
+// Public entry for `@inertiajs/core/testing`. This file must only import from './index' so
+// the bundled entry shares Inertia's state with the main entry instead of duplicating it.
+export {
+  back,
+  createFakeServer,
+  createTestScope,
+  defer,
+  errors,
+  json,
+  location,
+  MemoryHistory,
+  optional,
+  redirect,
+  response,
+  type FakeHandler,
+  type FakePage,
+  type FakeRequest,
+  type FakeRequestLog,
+  type FakeResult,
+  type FakeRoutes,
+  type FakeServer,
+  type FakeServerOptions,
+  type TestPage,
+  type TestScope,
+  type TestScopeOptions,
+} from './index'

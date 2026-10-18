@@ -1,5 +1,6 @@
 import { cloneDeep } from 'es-toolkit'
 import { get, set } from 'es-toolkit/compat'
+import { environment } from './environment'
 import { eventHandler } from './eventHandler'
 import { fireNavigateEvent } from './events'
 import { history } from './history'
@@ -7,6 +8,10 @@ import { prefetchedRequests } from './prefetched'
 import { Scroll } from './scroll'
 import { Component, FlashData, Page, PageEvent, PageHandler, PageResolver, RouterInitParams, Visit } from './types'
 import { hrefToUrl, isSameUrlWithoutHash } from './url'
+
+// Work started in a test scope that has since been disposed never settles, so nothing that
+// waits on it runs against the next scope's state
+const abandoned = (): Promise<never> => new Promise(() => {})
 
 class CurrentPage {
   protected page!: Page
@@ -81,6 +86,7 @@ class CurrentPage {
     this.componentId = {}
 
     const componentId = this.componentId
+    const generation = environment.generation()
 
     if (page.clearHistory) {
       history.clear()
@@ -88,6 +94,10 @@ class CurrentPage {
     }
 
     return this.resolve(page.component, page).then((component) => {
+      if (generation !== environment.generation()) {
+        return abandoned()
+      }
+
       if (componentId !== this.componentId) {
         // Component has changed since we started resolving this component, bail
         return
@@ -96,7 +106,7 @@ class CurrentPage {
       page.rememberedState ??= {}
 
       const isServer = typeof window === 'undefined'
-      const location = !isServer ? window.location : new URL(page.url)
+      const location = !isServer ? environment.location() : new URL(page.url)
       const scrollRegions = !isServer && preserveScroll ? Scroll.getScrollRegions() : []
       replace = replace || isSameUrlWithoutHash(hrefToUrl(page.url), location)
 
@@ -109,6 +119,10 @@ class CurrentPage {
       return new Promise<void>((resolve) =>
         replace ? history.replaceState(pageForHistory, resolve) : history.pushState(pageForHistory, resolve),
       ).then(() => {
+        if (generation !== environment.generation()) {
+          return abandoned()
+        }
+
         const isNewComponent = !this.isTheSame(page)
 
         if (!isNewComponent && Object.keys(page.props.errors || {}).length > 0) {
@@ -185,7 +199,13 @@ class CurrentPage {
     // A restored history entry supersedes any page update still resolving its component
     this.componentId = {}
 
+    const generation = environment.generation()
+
     return this.resolve(page.component, page).then((component) => {
+      if (generation !== environment.generation()) {
+        return abandoned()
+      }
+
       this.page = page
       this.cleared = false
       history.setCurrent(page)
@@ -195,6 +215,13 @@ class CurrentPage {
 
   public clear(): void {
     this.cleared = true
+  }
+
+  /**
+   * Forgets the current page and everything waiting on it. Only used when switching between isolated test scopes.
+   */
+  public reset(): void {
+    Object.assign(this, new CurrentPage())
   }
 
   public isCleared(): boolean {
@@ -220,7 +247,13 @@ class CurrentPage {
   public setPropsQuietly(props: Page['props']): Promise<unknown> {
     this.page = { ...this.page, props }
 
+    const generation = environment.generation()
+
     return this.resolve(this.page.component, this.page).then((component) => {
+      if (generation !== environment.generation()) {
+        return abandoned()
+      }
+
       return this.swap({ component, page: this.page, preserveState: true, viewTransition: false })
     })
   }

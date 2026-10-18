@@ -5,3 +5,5 @@
 /playwright-report
 /test-results
 node_modules
+__screenshots__
+.vitest-attachments

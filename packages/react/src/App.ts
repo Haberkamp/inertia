@@ -5,6 +5,7 @@ import {
   isPropsObject,
   isPropsObjectOrCallback,
   normalizeLayouts,
+  onTestScopeReset,
   Page,
   PageHandler,
   PageProps,
@@ -52,7 +53,7 @@ function isLayoutResolver(value: unknown): boolean {
 
 let pendingInitialSwap: ReactPageHandlerArgs | null = null
 let routerIsInitialized = false
-let swapComponent: PageHandler<ReactComponent> = async (args) => {
+const rememberInitialSwap: PageHandler<ReactComponent> = async (args) => {
   // Dummy function so we can init the router outside of the useEffect hook. This is
   // needed so `router.reload()` works right away (on mount) in any of the user's
   // components. We swap in the real function in the useEffect hook below.
@@ -61,6 +62,15 @@ let swapComponent: PageHandler<ReactComponent> = async (args) => {
   // place instead of dropping the swap.
   pendingInitialSwap = args
 }
+let swapComponent = rememberInitialSwap
+
+// Each test scope boots its own app, so the next <App> must initialize the router again
+onTestScopeReset(() => {
+  pendingInitialSwap = null
+  routerIsInitialized = false
+  swapComponent = rememberInitialSwap
+  resetLayoutProps()
+})
 
 type CurrentPage = {
   component: ReactComponent | null

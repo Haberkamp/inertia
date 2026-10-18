@@ -1,3 +1,4 @@
+import { environment } from './environment'
 import { eventHandler } from './eventHandler'
 import { fireFlashEvent, fireNavigateEvent } from './events'
 import { history } from './history'
@@ -66,7 +67,7 @@ export class InitialVisit {
     SessionStorage.remove(SessionStorage.locationVisitKey)
 
     if (typeof window !== 'undefined') {
-      currentPage.setUrlHash(window.location.hash)
+      currentPage.setUrlHash(environment.location().hash)
     }
 
     history
@@ -101,7 +102,7 @@ export class InitialVisit {
 
   protected static handleDefault(): void {
     if (typeof window !== 'undefined') {
-      currentPage.setUrlHash(window.location.hash)
+      currentPage.setUrlHash(environment.location().hash)
     }
 
     const visitId = uid()

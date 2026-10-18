@@ -1,4 +1,4 @@
-import { isSameUrlWithoutQueryOrHash, partialReloadRequestsSomeProps } from '@inertiajs/core'
+import { currentLocation, isSameUrlWithoutQueryOrHash, partialReloadRequestsSomeProps } from '@inertiajs/core'
 import { get } from 'es-toolkit/compat'
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { router } from '.'
@@ -37,7 +37,7 @@ const Deferred = ({ children, data, rescue, fallback }: DeferredProps) => {
 
       if (
         visit.preserveState === true &&
-        isSameUrlWithoutQueryOrHash(visit.url, window.location) &&
+        isSameUrlWithoutQueryOrHash(visit.url, currentLocation()) &&
         partialReloadRequestsSomeProps(visit, keys)
       ) {
         activeReloads.current.add(visit)

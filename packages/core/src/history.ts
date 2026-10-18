@@ -1,5 +1,6 @@
 import { cloneDeep, isEqual } from 'es-toolkit'
 import { decryptHistory, encryptHistory, historySessionStorageKeys } from './encryption'
+import { environment } from './environment'
 import { eventHandler } from './eventHandler'
 import { page as currentPage } from './page'
 import Queue from './queue'
@@ -7,7 +8,7 @@ import { SessionStorage } from './sessionStorage'
 import { Page, ScrollRegion } from './types'
 
 const isServer = typeof window === 'undefined'
-const queue = new Queue<Promise<void>>()
+let queue = new Queue<Promise<void>>()
 const isChromeIOS = !isServer && /CriOS/.test(window.navigator.userAgent)
 
 class History {
@@ -17,6 +18,16 @@ class History {
   protected current: Partial<Page> = {}
   // We need initialState for `restore`
   protected initialState: Partial<Page> | null = null
+
+  /**
+   * Forgets everything about the current history. Only used when switching between isolated test scopes.
+   */
+  public reset(): void {
+    queue = new Queue<Promise<void>>()
+    this.preserveUrl = false
+    this.current = {}
+    this.initialState = null
+  }
 
   public remember(data: unknown, key: string): void {
     this.replaceState({
@@ -48,11 +59,13 @@ class History {
 
     this.current = page
 
-    queue.add(() => {
+    const generation = environment.generation()
+
+    this.enqueue(() => {
       return this.getPageData(page).then((data) => {
         // Defer history.pushState to the next event loop tick to prevent timing conflicts.
         // Ensure any previous history.replaceState completes before pushState is executed.
-        const doPush = () => this.doPushState({ page: data }, page.url).then(() => cb?.())
+        const doPush = () => this.doPushState({ page: data }, page.url, generation).then(() => cb?.())
 
         if (isChromeIOS) {
           return new Promise((resolve) => {
@@ -87,6 +100,13 @@ class History {
     })
   }
 
+  protected enqueue(task: () => Promise<void>): void {
+    const generation = environment.generation()
+
+    // Writes queued by a test scope that has since been disposed must not land in the next one
+    queue.add(() => (generation === environment.generation() ? task() : Promise.resolve()))
+  }
+
   public processQueue(): Promise<void> {
     return queue.process()
   }
@@ -96,7 +116,7 @@ class History {
       return Promise.resolve(page ?? currentPage.get())
     }
 
-    const pageData = page ?? window.history.state?.page
+    const pageData = page ?? environment.history().state?.page
 
     return this.decryptPageData(pageData).then((data) => {
       if (!data) {
@@ -118,9 +138,9 @@ class History {
   }
 
   public saveScrollPositions(scrollRegions: ScrollRegion[]): void {
-    queue.add(() => {
+    this.enqueue(() => {
       return Promise.resolve().then(() => {
-        if (!window.history.state?.page) {
+        if (!environment.history().state?.page) {
           return
         }
 
@@ -129,7 +149,7 @@ class History {
         }
 
         return this.doReplaceState({
-          page: window.history.state.page,
+          page: environment.history().state.page,
           scrollRegions,
         })
       })
@@ -137,9 +157,9 @@ class History {
   }
 
   public saveDocumentScrollPosition(scrollRegion: ScrollRegion): void {
-    queue.add(() => {
+    this.enqueue(() => {
       return Promise.resolve().then(() => {
-        if (!window.history.state?.page) {
+        if (!environment.history().state?.page) {
           return
         }
 
@@ -148,7 +168,7 @@ class History {
         }
 
         return this.doReplaceState({
-          page: window.history.state.page,
+          page: environment.history().state.page,
           documentScrollPosition: scrollRegion,
         })
       })
@@ -156,11 +176,11 @@ class History {
   }
 
   public getScrollRegions(): ScrollRegion[] {
-    return window.history.state?.scrollRegions || []
+    return environment.history().state?.scrollRegions || []
   }
 
   public getDocumentScrollPosition(): ScrollRegion {
-    return window.history.state?.documentScrollPosition || { top: 0, left: 0 }
+    return environment.history().state?.documentScrollPosition || { top: 0, left: 0 }
   }
 
   public replaceState(page: Page, cb: (() => void) | null = null): void {
@@ -185,11 +205,13 @@ class History {
 
     this.current = page
 
-    queue.add(() => {
+    const generation = environment.generation()
+
+    this.enqueue(() => {
       return this.getPageData(page).then((data) => {
         // Defer history.replaceState to the next event loop tick to prevent timing conflicts.
         // Ensure any previous history.pushState completes before replaceState is executed.
-        const doReplace = () => this.doReplaceState({ page: data }, page.url).then(() => cb?.())
+        const doReplace = () => this.doReplaceState({ page: data }, page.url, generation).then(() => cb?.())
 
         if (isChromeIOS) {
           return new Promise((resolve) => {
@@ -235,16 +257,20 @@ class History {
       documentScrollPosition?: ScrollRegion
     },
     url?: string,
+    generation: number = environment.generation(),
   ): Promise<void> {
     return this.withThrottleProtection(() => {
+      if (generation !== environment.generation()) {
+        return
+      }
+
       try {
-        window.history.replaceState(
+        environment.history().replaceState(
           {
             ...data,
-            scrollRegions: data.scrollRegions ?? window.history.state?.scrollRegions,
-            documentScrollPosition: data.documentScrollPosition ?? window.history.state?.documentScrollPosition,
+            scrollRegions: data.scrollRegions ?? environment.history().state?.scrollRegions,
+            documentScrollPosition: data.documentScrollPosition ?? environment.history().state?.documentScrollPosition,
           },
-          '',
           url,
         )
       } catch (error) {
@@ -266,10 +292,15 @@ class History {
       documentScrollPosition?: ScrollRegion
     },
     url: string,
+    generation: number = environment.generation(),
   ): Promise<void> {
     return this.withThrottleProtection(() => {
+      if (generation !== environment.generation()) {
+        return
+      }
+
       try {
-        window.history.pushState(data, '', url)
+        environment.history().pushState(data, url)
       } catch (error) {
         if (!this.isQuotaExceededError(error)) {
           throw error
@@ -299,7 +330,7 @@ class History {
   }
 
   public browserHasHistoryEntry(): boolean {
-    return !isServer && !!window.history.state?.page
+    return !isServer && !!environment.history().state?.page
   }
 
   public clear() {

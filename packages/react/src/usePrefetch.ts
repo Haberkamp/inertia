@@ -1,4 +1,4 @@
-import { router, VisitOptions } from '@inertiajs/core'
+import { currentLocation, router, VisitOptions } from '@inertiajs/core'
 import { useEffect, useState } from 'react'
 
 export default function usePrefetch(options: VisitOptions = {}): {
@@ -7,8 +7,8 @@ export default function usePrefetch(options: VisitOptions = {}): {
   isPrefetched: boolean
   flush: () => void
 } {
-  const cached = typeof window === 'undefined' ? null : router.getCached(window.location.pathname, options)
-  const inFlight = typeof window === 'undefined' ? null : router.getPrefetching(window.location.pathname, options)
+  const cached = typeof window === 'undefined' ? null : router.getCached(currentLocation().pathname, options)
+  const inFlight = typeof window === 'undefined' ? null : router.getPrefetching(currentLocation().pathname, options)
 
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(cached?.staleTimestamp || null)
   const [isPrefetching, setIsPrefetching] = useState(inFlight !== null)
@@ -16,13 +16,13 @@ export default function usePrefetch(options: VisitOptions = {}): {
 
   useEffect(() => {
     const onPrefetchingListener = router.on('prefetching', (e) => {
-      if (e.detail.visit.url.pathname === window.location.pathname) {
+      if (e.detail.visit.url.pathname === currentLocation().pathname) {
         setIsPrefetching(true)
       }
     })
 
     const onPrefetchedListener = router.on('prefetched', (e) => {
-      if (e.detail.visit.url.pathname === window.location.pathname) {
+      if (e.detail.visit.url.pathname === currentLocation().pathname) {
         setIsPrefetching(false)
         setIsPrefetched(true)
         setLastUpdatedAt(e.detail.fetchedAt)
@@ -39,6 +39,6 @@ export default function usePrefetch(options: VisitOptions = {}): {
     lastUpdatedAt,
     isPrefetching,
     isPrefetched,
-    flush: () => router.flush(window.location.pathname, options),
+    flush: () => router.flush(currentLocation().pathname, options),
   }
 }
