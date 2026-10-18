@@ -44,6 +44,9 @@ jobs:
       - name: Test Core
         run: pnpm --filter './packages/core' test
 
+      - name: Test React
+        run: pnpm --filter './packages/react' test
+
   vite-plugin:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Vite Plugin (Vite ${{ matrix.vite }}${{ matrix.os == 'windows-latest' && ', Windows' || '' }})
