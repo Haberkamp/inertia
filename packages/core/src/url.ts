@@ -1,4 +1,5 @@
 import { config } from './config'
+import { environment } from './environment'
 import { hasFiles } from './files'
 import { isFormData, objectToFormData } from './formData'
 import * as queryString from './queryString'
@@ -12,7 +13,7 @@ import type {
 } from './types'
 
 export function hrefToUrl(href: string | URL): URL {
-  return new URL(href.toString(), typeof window === 'undefined' ? undefined : window.location.toString())
+  return new URL(href.toString(), typeof window === 'undefined' ? undefined : environment.location().toString())
 }
 
 export const transformUrlAndData = (
@@ -58,7 +59,10 @@ export function mergeDataIntoQueryString<T extends RequestPayload>(
   const hasSearch = href.toString().includes('?') || hasDataForQueryString
   const hasHash = href.toString().includes('#')
 
-  const url = new URL(href.toString(), typeof window === 'undefined' ? 'http://localhost' : window.location.toString())
+  const url = new URL(
+    href.toString(),
+    typeof window === 'undefined' ? 'http://localhost' : environment.location().toString(),
+  )
 
   if (hasDataForQueryString) {
     // If the original URL contains indices notation (e.g. [0], [1]), preserve it.

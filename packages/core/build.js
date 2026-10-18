@@ -26,11 +26,27 @@ const config = {
   ],
 }
 
+// Entries that extend the main entry import it by package name, so they share its state instead of
+// bundling a second copy of every module.
+const useMainEntry = {
+  name: 'use-main-entry',
+  setup(build) {
+    build.onResolve({ filter: /^\.\/index$/ }, () => ({ path: '@inertiajs/core', external: true }))
+  },
+}
+
 const builds = [
   { entryPoints: ['src/index.ts'], format: 'esm', outfile: 'dist/index.js', platform: 'browser' },
   { entryPoints: ['src/server.ts'], format: 'esm', outfile: 'dist/server.js', platform: 'node' },
   { entryPoints: ['src/ssrErrors.ts'], format: 'esm', outfile: 'dist/ssrErrors.js', platform: 'node' },
   { entryPoints: ['src/json.ts'], format: 'esm', outfile: 'dist/json.js', platform: 'node' },
+  {
+    entryPoints: ['src/testing.ts'],
+    format: 'esm',
+    outfile: 'dist/testing.js',
+    platform: 'browser',
+    plugins: [...config.plugins, useMainEntry],
+  },
 ]
 
 builds.forEach(async (build) => {

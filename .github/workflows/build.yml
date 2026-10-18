@@ -38,6 +38,9 @@ jobs:
       - name: Build Inertia
         run: pnpm build:all
 
+      - name: Install Playwright browser
+        run: pnpm --filter './packages/core' exec playwright install --with-deps chromium-headless-shell
+
       - name: Test Core
         run: pnpm --filter './packages/core' test
 

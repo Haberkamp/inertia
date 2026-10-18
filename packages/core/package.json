@@ -40,6 +40,10 @@
     "./json": {
       "types": "./types/json.d.ts",
       "import": "./dist/json.js"
+    },
+    "./testing": {
+      "types": "./types/testing.d.ts",
+      "import": "./dist/testing.js"
     }
   },
   "typesVersions": {
@@ -52,6 +56,9 @@
       ],
       "json": [
         "types/json.d.ts"
+      ],
+      "testing": [
+        "types/testing.d.ts"
       ]
     }
   },
@@ -80,10 +87,12 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.13",
+    "@vitest/browser-playwright": "4.1.11",
     "axios": "^1.20.0",
     "es-check": "^9.6.4",
     "esbuild": "^0.28.1",
     "esbuild-node-externals": "^1.23.1",
+    "playwright": "1.58.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   }

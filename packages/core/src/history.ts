@@ -1,5 +1,6 @@
 import { cloneDeep, isEqual } from 'es-toolkit'
 import { decryptHistory, encryptHistory, historySessionStorageKeys } from './encryption'
+import { environment } from './environment'
 import { eventHandler } from './eventHandler'
 import { page as currentPage } from './page'
 import Queue from './queue'
@@ -96,7 +97,7 @@ class History {
       return Promise.resolve(page ?? currentPage.get())
     }
 
-    const pageData = page ?? window.history.state?.page
+    const pageData = page ?? environment.history().state?.page
 
     return this.decryptPageData(pageData).then((data) => {
       if (!data) {
@@ -120,7 +121,7 @@ class History {
   public saveScrollPositions(scrollRegions: ScrollRegion[]): void {
     queue.add(() => {
       return Promise.resolve().then(() => {
-        if (!window.history.state?.page) {
+        if (!environment.history().state?.page) {
           return
         }
 
@@ -129,7 +130,7 @@ class History {
         }
 
         return this.doReplaceState({
-          page: window.history.state.page,
+          page: environment.history().state.page,
           scrollRegions,
         })
       })
@@ -139,7 +140,7 @@ class History {
   public saveDocumentScrollPosition(scrollRegion: ScrollRegion): void {
     queue.add(() => {
       return Promise.resolve().then(() => {
-        if (!window.history.state?.page) {
+        if (!environment.history().state?.page) {
           return
         }
 
@@ -148,7 +149,7 @@ class History {
         }
 
         return this.doReplaceState({
-          page: window.history.state.page,
+          page: environment.history().state.page,
           documentScrollPosition: scrollRegion,
         })
       })
@@ -156,11 +157,11 @@ class History {
   }
 
   public getScrollRegions(): ScrollRegion[] {
-    return window.history.state?.scrollRegions || []
+    return environment.history().state?.scrollRegions || []
   }
 
   public getDocumentScrollPosition(): ScrollRegion {
-    return window.history.state?.documentScrollPosition || { top: 0, left: 0 }
+    return environment.history().state?.documentScrollPosition || { top: 0, left: 0 }
   }
 
   public replaceState(page: Page, cb: (() => void) | null = null): void {
@@ -238,13 +239,12 @@ class History {
   ): Promise<void> {
     return this.withThrottleProtection(() => {
       try {
-        window.history.replaceState(
+        environment.history().replaceState(
           {
             ...data,
-            scrollRegions: data.scrollRegions ?? window.history.state?.scrollRegions,
-            documentScrollPosition: data.documentScrollPosition ?? window.history.state?.documentScrollPosition,
+            scrollRegions: data.scrollRegions ?? environment.history().state?.scrollRegions,
+            documentScrollPosition: data.documentScrollPosition ?? environment.history().state?.documentScrollPosition,
           },
-          '',
           url,
         )
       } catch (error) {
@@ -269,7 +269,7 @@ class History {
   ): Promise<void> {
     return this.withThrottleProtection(() => {
       try {
-        window.history.pushState(data, '', url)
+        environment.history().pushState(data, url)
       } catch (error) {
         if (!this.isQuotaExceededError(error)) {
           throw error
@@ -299,7 +299,7 @@ class History {
   }
 
   public browserHasHistoryEntry(): boolean {
-    return !isServer && !!window.history.state?.page
+    return !isServer && !!environment.history().state?.page
   }
 
   public clear() {

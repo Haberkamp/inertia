@@ -1,5 +1,6 @@
 import { get } from 'es-toolkit/compat'
 import debounce from './debounce'
+import { environment, MemoryHistory } from './environment'
 import { fireNavigateEvent } from './events'
 import { history } from './history'
 import { router } from './index'
@@ -14,16 +15,41 @@ class EventHandler {
     listener: (...args: any[]) => void
   }[] = []
 
+  protected teardowns = new Set<VoidFunction>()
+
   public init() {
+    const historyEnvironment = environment.history()
+
+    if (historyEnvironment instanceof MemoryHistory) {
+      historyEnvironment.onPopstate((state) => this.handlePopstateEvent({ state } as PopStateEvent))
+      this.teardowns.add(() => historyEnvironment.onPopstate(null))
+    } else if (typeof window !== 'undefined') {
+      this.addListener(window, 'popstate', this.handlePopstateEvent.bind(this))
+      this.addListener(window, 'pageshow', this.handlePageshowEvent.bind(this))
+    }
+
     if (typeof window !== 'undefined') {
-      window.addEventListener('popstate', this.handlePopstateEvent.bind(this))
-      window.addEventListener('pageshow', this.handlePageshowEvent.bind(this))
-      window.addEventListener('scroll', debounce(Scroll.onWindowScroll.bind(Scroll), 100), true)
+      this.addListener(window, 'scroll', debounce(Scroll.onWindowScroll.bind(Scroll), 100), true)
     }
 
     if (typeof document !== 'undefined') {
-      document.addEventListener('scroll', debounce(Scroll.onScroll.bind(Scroll), 100), true)
+      this.addListener(document, 'scroll', debounce(Scroll.onScroll.bind(Scroll), 100), true)
     }
+  }
+
+  /**
+   * Removes every listener registered since the last reset. Only used when
+   * switching between isolated test scopes.
+   */
+  public reset(): void {
+    this.teardowns.forEach((teardown) => teardown())
+    this.teardowns.clear()
+    this.internalListeners = []
+  }
+
+  protected addListener(target: EventTarget, type: string, listener: (event: any) => void, capture = false): void {
+    target.addEventListener(type, listener, capture)
+    this.teardowns.add(() => target.removeEventListener(type, listener, capture))
   }
 
   public onGlobalEvent<TEventName extends GlobalEventNames>(
@@ -66,7 +92,14 @@ class EventHandler {
   protected registerListener(type: string, listener: EventListener): VoidFunction {
     document.addEventListener(type, listener)
 
-    return () => document.removeEventListener(type, listener)
+    const remove = () => {
+      document.removeEventListener(type, listener)
+      this.teardowns.delete(remove)
+    }
+
+    this.teardowns.add(remove)
+
+    return remove
   }
 
   // bfcache restores pages without firing `popstate`, so we use `pageshow` to
@@ -83,7 +116,7 @@ class EventHandler {
 
     if (state === null) {
       const url = hrefToUrl(currentPage.get().url)
-      url.hash = window.location.hash
+      url.hash = environment.location().hash
 
       history.replaceState({ ...currentPage.getWithoutFlashData(), url: url.href })
       Scroll.reset()

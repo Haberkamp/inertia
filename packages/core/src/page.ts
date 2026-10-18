@@ -1,5 +1,6 @@
 import { cloneDeep } from 'es-toolkit'
 import { get, set } from 'es-toolkit/compat'
+import { environment } from './environment'
 import { eventHandler } from './eventHandler'
 import { fireNavigateEvent } from './events'
 import { history } from './history'
@@ -96,7 +97,7 @@ class CurrentPage {
       page.rememberedState ??= {}
 
       const isServer = typeof window === 'undefined'
-      const location = !isServer ? window.location : new URL(page.url)
+      const location = !isServer ? environment.location() : new URL(page.url)
       const scrollRegions = !isServer && preserveScroll ? Scroll.getScrollRegions() : []
       replace = replace || isSameUrlWithoutHash(hrefToUrl(page.url), location)
 

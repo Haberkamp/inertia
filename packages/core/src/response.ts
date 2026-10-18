@@ -2,6 +2,7 @@ import { isEqual } from 'es-toolkit'
 import { get, set } from 'es-toolkit/compat'
 import { router } from '.'
 import dialog from './dialog'
+import { environment } from './environment'
 import {
   fireBeforeUpdateEvent,
   fireErrorEvent,
@@ -49,7 +50,7 @@ export class Response {
   }
 
   public async handlePrefetch() {
-    if (isSameUrlWithoutHash(this.requestParams.all().url, window.location)) {
+    if (isSameUrlWithoutHash(this.requestParams.all().url, environment.location())) {
       this.handle()
     }
   }
@@ -232,10 +233,10 @@ export class Response {
         preserveScroll: this.requestParams.all().preserveScroll === true,
       })
 
-      if (isSameUrlWithoutHash(window.location, url)) {
-        window.location.reload()
+      if (isSameUrlWithoutHash(environment.location(), url)) {
+        environment.history().reload()
       } else {
-        window.location.href = url.href
+        environment.history().assign(url.href)
       }
     } catch (error) {
       return false

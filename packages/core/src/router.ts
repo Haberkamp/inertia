@@ -2,6 +2,7 @@ import { cloneDeep, isEqual } from 'es-toolkit'
 import { get, set } from 'es-toolkit/compat'
 import { progress } from '.'
 import { config } from './config'
+import { environment } from './environment'
 import { eventHandler } from './eventHandler'
 import { fireBeforeEvent, fireClientVisitEvent, fireFlashEvent } from './events'
 import { history } from './history'
@@ -87,7 +88,7 @@ export class Router {
 
     eventHandler.on('missingHistoryItem', () => {
       if (typeof window !== 'undefined') {
-        this.visit(window.location.href, { preserveState: true, preserveScroll: true, replace: true })
+        this.visit(environment.location().href, { preserveState: true, preserveScroll: true, replace: true })
       }
     })
 
@@ -96,7 +97,7 @@ export class Router {
     })
 
     eventHandler.on('historyQuotaExceeded', (url) => {
-      window.location.href = url
+      environment.history().assign(url)
     })
   }
 
@@ -159,7 +160,7 @@ export class Router {
       return
     }
 
-    return this.visit(window.location.href, {
+    return this.visit(environment.location().href, {
       ...options,
       preserveScroll: true,
       preserveState: true,
@@ -402,7 +403,8 @@ export class Router {
     })
 
     const visitUrl = visit.url.origin + visit.url.pathname + visit.url.search
-    const currentUrl = window.location.origin + window.location.pathname + window.location.search
+    const location = environment.location()
+    const currentUrl = location.origin + location.pathname + location.search
 
     if (visitUrl === currentUrl) {
       // Don't prefetch the current page, you're already on it

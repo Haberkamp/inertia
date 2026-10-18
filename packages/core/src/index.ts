@@ -44,3 +44,8 @@ export { XhrHttpClient, xhrHttpClient } from './xhrHttpClient'
 export { type Config, type Router }
 
 export const router = new Router()
+
+/** @internal Use `@inertiajs/core/testing` instead. */
+export { MemoryHistory } from './environment'
+/** @internal Use `@inertiajs/core/testing` instead. */
+export { createTestScope, type TestScope, type TestScopeOptions } from './testScope'

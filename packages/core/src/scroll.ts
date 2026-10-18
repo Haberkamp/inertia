@@ -1,4 +1,5 @@
 import { requestAnimationFrame } from './domUtils'
+import { environment } from './environment'
 import { history } from './history'
 import { ScrollRegion } from './types'
 
@@ -31,7 +32,7 @@ export class Scroll {
   }
 
   public static reset(): void {
-    const anchorHash = isServer ? null : window.location.hash
+    const anchorHash = isServer ? null : environment.location().hash
 
     if (!anchorHash) {
       // Reset the document scroll position if there is no hash.
@@ -52,7 +53,7 @@ export class Scroll {
   }
 
   public static scrollToAnchor(): void {
-    const anchorHash = isServer ? null : window.location.hash
+    const anchorHash = isServer ? null : environment.location().hash
 
     if (anchorHash) {
       // We're using a setTimeout() here as a workaround for a bug in the React adapter where the
