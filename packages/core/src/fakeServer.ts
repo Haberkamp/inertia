@@ -213,7 +213,9 @@ export function createFakeServer(routes: FakeRoutes = {}, { delay = 0 }: FakeSer
   const requests: FakeRequestLog[] = []
 
   const route = (key: string, handler: FakeHandler | FakeResult) => {
-    compiled.set(key, compileRoute(key, handler))
+    const route = compileRoute(key, handler)
+
+    compiled.set(`${route.method} ${route.pattern.source}`, route)
   }
 
   Object.entries(routes).forEach(([key, handler]) => route(key, handler))
@@ -409,7 +411,7 @@ export function createFakeServer(routes: FakeRoutes = {}, { delay = 0 }: FakeSer
     httpResponse(
       404,
       `No route in the fake server matches ${request.method.toUpperCase()} ${request.path}. Routes: ${
-        [...compiled.keys()].join(', ') || 'none'
+        [...compiled.values()].map((route) => route.key).join(', ') || 'none'
       }`,
       { 'content-type': 'text/plain' },
     )

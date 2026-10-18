@@ -158,6 +158,8 @@ export function createTestScope(router: Router, { url = '/', server }: TestScope
 
       activeScope = null
       restoreFetch()
+      // Cancel the scope's visits while it's still in place, so their callbacks can't reach the real browser
+      resetState(router)
       memoryHistory.dispose()
       environment.restore()
       resetState(router)

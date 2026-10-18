@@ -122,7 +122,8 @@ export class MemoryHistory implements HistoryEnvironment {
   }
 
   public get location(): URL {
-    return this.entries[this.index].url
+    // A copy, so callers can't rewrite the history entry by mutating it
+    return new URL(this.entries[this.index].url)
   }
 
   public get url(): string {
