@@ -9,6 +9,10 @@ import { Scroll } from './scroll'
 import { Component, FlashData, Page, PageEvent, PageHandler, PageResolver, RouterInitParams, Visit } from './types'
 import { hrefToUrl, isSameUrlWithoutHash } from './url'
 
+// Work started in a test scope that has since been disposed never settles, so nothing that
+// waits on it runs against the next scope's state
+const abandoned = (): Promise<never> => new Promise(() => {})
+
 class CurrentPage {
   protected page!: Page
   protected swapComponent!: PageHandler<any>
@@ -90,6 +94,10 @@ class CurrentPage {
     }
 
     return this.resolve(page.component, page).then((component) => {
+      if (generation !== environment.generation()) {
+        return abandoned()
+      }
+
       if (componentId !== this.componentId) {
         // Component has changed since we started resolving this component, bail
         return
@@ -112,8 +120,7 @@ class CurrentPage {
         replace ? history.replaceState(pageForHistory, resolve) : history.pushState(pageForHistory, resolve),
       ).then(() => {
         if (generation !== environment.generation()) {
-          // The test scope this page was set in has been disposed
-          return
+          return abandoned()
         }
 
         const isNewComponent = !this.isTheSame(page)
@@ -196,7 +203,7 @@ class CurrentPage {
 
     return this.resolve(page.component, page).then((component) => {
       if (generation !== environment.generation()) {
-        return
+        return abandoned()
       }
 
       this.page = page
@@ -244,7 +251,7 @@ class CurrentPage {
 
     return this.resolve(this.page.component, this.page).then((component) => {
       if (generation !== environment.generation()) {
-        return
+        return abandoned()
       }
 
       return this.swap({ component, page: this.page, preserveState: true, viewTransition: false })

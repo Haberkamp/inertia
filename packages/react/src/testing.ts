@@ -1,6 +1,6 @@
 // Public entry for `@inertiajs/react/testing`. Import the adapter's runtime code only through './index',
 // so the bundled entry shares the adapter's state instead of bundling a second copy of it.
-import { Page, PageProps, TestScope, testScopes } from '@inertiajs/core'
+import { HttpClient, Page, PageProps, TestScope, testScopes } from '@inertiajs/core'
 import { createElement, Fragment, ReactElement, ReactNode, useEffect, useRef, useState } from 'react'
 import type { InertiaAppProps } from './App'
 import { App } from './index'
@@ -18,6 +18,11 @@ export interface InertiaTestAppProps<SharedProps extends PageProps = PageProps> 
   resolve?: (name: string, page?: Page) => ReactComponent | Promise<ReactComponent> | { default: ReactComponent }
   /** Rendered instead of the page component, for stories and tests of a single component. */
   children?: ReactNode
+  /**
+   * Answers the app's requests, usually a fake server from `createFakeServer()`
+   * in `@inertiajs/core/testing`. Without one, requests go to the network as usual.
+   */
+  server?: HttpClient
   titleCallback?: InertiaAppProps['titleCallback']
   defaultLayout?: InertiaAppProps['defaultLayout']
 }
@@ -45,6 +50,7 @@ export function InertiaTestApp<SharedProps extends PageProps = PageProps>({
   component,
   resolve,
   children,
+  server,
   titleCallback,
   defaultLayout,
 }: InertiaTestAppProps<SharedProps>): ReactElement {
@@ -52,7 +58,7 @@ export function InertiaTestApp<SharedProps extends PageProps = PageProps>({
   const booted = useRef<{ scope: TestScope; page: Page; key: number } | null>(null)
 
   // The scope has to exist before <App> renders, as that's when the router initializes
-  const scope = testScopes.acquire(owner, { url: pageOverrides?.url ?? '/' })
+  const scope = testScopes.acquire(owner, { url: pageOverrides?.url ?? '/', server })
 
   if (booted.current?.scope !== scope) {
     // A new scope needs a fresh <App>, as the old one holds the previous scope's page
@@ -143,3 +149,5 @@ export function withInertia(defaults: Omit<InertiaTestAppProps, 'children'> = {}
     } as InertiaTestAppProps)
   }
 }
+
+export * from '@inertiajs/core/testing'

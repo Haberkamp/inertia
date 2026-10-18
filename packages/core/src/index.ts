@@ -50,6 +50,26 @@ export const router = new Router()
 /** @internal Use `@inertiajs/core/testing` instead. */
 export { MemoryHistory } from './environment'
 /** @internal Use `@inertiajs/core/testing` instead. */
+export {
+  back,
+  createFakeServer,
+  defer,
+  errors,
+  json,
+  location,
+  optional,
+  redirect,
+  response,
+  type FakeHandler,
+  type FakePage,
+  type FakeRequest,
+  type FakeRequestLog,
+  type FakeResult,
+  type FakeRoutes,
+  type FakeServer,
+  type FakeServerOptions,
+} from './fakeServer'
+/** @internal Use `@inertiajs/core/testing` instead. */
 export { activeTestScope, onTestScopeReset, type TestScope, type TestScopeOptions } from './testScope'
 /** @internal The current URL: the browser's location, or the in-memory one inside a test scope. */
 export const currentLocation = (): Location | URL => environment.location()

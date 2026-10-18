@@ -3,18 +3,23 @@ import { environment, MemoryHistory, MemoryStorage } from './environment'
 import { eventHandler } from './eventHandler'
 import { history } from './history'
 import { http } from './http'
+import { HttpCancelledError, HttpResponseError } from './httpErrors'
 import { httpHandlers } from './httpHandlers'
 import { resetInfiniteScrollQueryString } from './infiniteScroll/queryString'
+import { stringifyJson } from './json'
 import { page } from './page'
 import { polls } from './polls'
 import { prefetchedRequests } from './prefetched'
 import { progress } from './progress'
-import { Response } from './response'
+import { Response as InertiaResponse } from './response'
 import type { Router } from './router'
+import type { HttpClient, HttpRequestConfig, HttpResponse } from './types'
 
 export interface TestScopeOptions {
   /** The URL the scope starts on. Relative URLs resolve against the current origin. Defaults to `/`. */
   url?: string
+  /** The HTTP client the scope's requests go to, usually a fake server. */
+  server?: HttpClient
 }
 
 export interface TestScope {
@@ -27,6 +32,59 @@ export interface TestScope {
 }
 
 let activeScope: TestScope | null = null
+
+const hasPrecognitionHeader = (headers: HeadersInit | undefined): boolean =>
+  new Headers(headers).get('Precognition') === 'true'
+
+/**
+ * Precognition sends its requests with `fetch`, so inside a test scope they're handed to the
+ * scope's HTTP client instead, the same one Inertia's own requests go to.
+ */
+const routePrecognitionRequestsToHttpClient = (): VoidFunction => {
+  const originalFetch = window.fetch
+
+  const scopedFetch: typeof window.fetch = async (input, init) => {
+    if (!hasPrecognitionHeader(init?.headers)) {
+      return originalFetch(input, init)
+    }
+
+    const config: HttpRequestConfig = {
+      method: (init?.method ?? 'get').toLowerCase() as HttpRequestConfig['method'],
+      url: input instanceof Request ? input.url : input.toString(),
+      data: init?.body ?? undefined,
+      headers: Object.fromEntries(new Headers(init?.headers).entries()),
+      signal: init?.signal ?? undefined,
+    }
+
+    const toFetchResponse = ({ status, data, headers }: HttpResponse) =>
+      new Response(status === 204 || data === '' ? null : typeof data === 'string' ? data : stringifyJson(data), {
+        status,
+        headers,
+      })
+
+    try {
+      return toFetchResponse(await http.getClient().request(config))
+    } catch (error) {
+      if (error instanceof HttpResponseError) {
+        return toFetchResponse(error.response)
+      }
+
+      if (error instanceof HttpCancelledError) {
+        throw new DOMException('The operation was aborted.', 'AbortError')
+      }
+
+      throw error
+    }
+  }
+
+  window.fetch = scopedFetch
+
+  return () => {
+    if (window.fetch === scopedFetch) {
+      window.fetch = originalFetch
+    }
+  }
+}
 const resetCallbacks = new Set<VoidFunction>()
 
 /**
@@ -53,7 +111,7 @@ const resetState = (router: Router) => {
   prefetchedRequests.removeAll()
   history.reset()
   page.reset()
-  Response.reset()
+  InertiaResponse.reset()
   resetInfiniteScrollQueryString()
   progress.hideCount = 0
   resetCallbacks.forEach((callback) => callback())
@@ -62,7 +120,7 @@ const resetState = (router: Router) => {
 /**
  * @internal Use `createTestScope` from `@inertiajs/core/testing` instead.
  */
-export function createTestScope(router: Router, { url = '/' }: TestScopeOptions = {}): TestScope {
+export function createTestScope(router: Router, { url = '/', server }: TestScopeOptions = {}): TestScope {
   if (activeScope) {
     throw new Error(
       'An Inertia test scope is already active. Dispose it before creating another one. ' +
@@ -79,6 +137,12 @@ export function createTestScope(router: Router, { url = '/' }: TestScopeOptions 
   environment.use({ history: memoryHistory, sessionStorage })
   resetState(router)
 
+  if (server) {
+    http.setClient(server)
+  }
+
+  const restoreFetch = routePrecognitionRequestsToHttpClient()
+
   const scope: TestScope = {
     history: memoryHistory,
     sessionStorage,
@@ -88,6 +152,7 @@ export function createTestScope(router: Router, { url = '/' }: TestScopeOptions 
       }
 
       activeScope = null
+      restoreFetch()
       memoryHistory.dispose()
       environment.restore()
       resetState(router)
@@ -113,7 +178,7 @@ let ownership: ScopeOwnership | null = null
 
 const disposeOwnedScope = () => {
   if (ownership) {
-    ownership.releaseTimer && clearTimeout(ownership.releaseTimer)
+    clearTimeout(ownership.releaseTimer ?? undefined)
     ownership.scope.dispose()
     ownership = null
   }
@@ -146,7 +211,7 @@ export const testScopeOwnership = {
   mount(owner: object): void {
     if (ownership?.owner === owner) {
       ownership.mounted = true
-      ownership.releaseTimer && clearTimeout(ownership.releaseTimer)
+      clearTimeout(ownership.releaseTimer ?? undefined)
       ownership.releaseTimer = null
     }
   },
