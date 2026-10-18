@@ -1,6 +1,6 @@
 // Public entry for `@inertiajs/react/testing`. Import the adapter's runtime code only through './index',
 // so the bundled entry shares the adapter's state instead of bundling a second copy of it.
-import { HttpClient, Page, PageProps, TestScope, testScopes } from '@inertiajs/core'
+import { HttpClient, Page, PageProps, TestPage, TestScope, testScopes } from '@inertiajs/core'
 import { createElement, Fragment, ReactElement, ReactNode, useEffect, useRef, useState } from 'react'
 import type { InertiaAppProps } from './App'
 import { App } from './index'
@@ -11,7 +11,7 @@ export interface InertiaTestAppProps<SharedProps extends PageProps = PageProps> 
    * The page the app starts on. Anything left out gets a sensible default,
    * and `url` decides where the in-memory history starts.
    */
-  page?: Partial<Page<SharedProps>>
+  page?: TestPage<SharedProps>
   /** The component to render for the initial page. Defaults to resolving `page.component`. */
   component?: ReactComponent
   /** Resolves page components by name, needed when the app navigates to other pages. */
@@ -27,16 +27,17 @@ export interface InertiaTestAppProps<SharedProps extends PageProps = PageProps> 
   defaultLayout?: InertiaAppProps['defaultLayout']
 }
 
-const makePage = (page: Partial<Page> = {}): Page => ({
-  component: 'Page',
-  url: '/',
-  version: null,
-  flash: {},
-  rescuedProps: [],
-  rememberedState: {},
-  ...page,
-  props: { errors: {}, ...page.props },
-})
+const makePage = (page: TestPage = {}): Page =>
+  ({
+    component: 'Page',
+    url: '/',
+    version: null,
+    flash: {},
+    rescuedProps: [],
+    rememberedState: {},
+    ...page,
+    props: { errors: {}, ...page.props },
+  }) as Page
 
 const unwrap = (module: ReactComponent | { default: ReactComponent }): ReactComponent =>
   'default' in module ? module.default : module
@@ -62,7 +63,7 @@ export function InertiaTestApp<SharedProps extends PageProps = PageProps>({
 
   if (booted.current?.scope !== scope) {
     // A new scope needs a fresh <App>, as the old one holds the previous scope's page
-    booted.current = { scope, page: makePage(pageOverrides as Partial<Page>), key: nextAppKey++ }
+    booted.current = { scope, page: makePage(pageOverrides as TestPage), key: nextAppKey++ }
   }
 
   const initialPage = booted.current.page

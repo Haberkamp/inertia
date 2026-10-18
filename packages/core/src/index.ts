@@ -70,7 +70,7 @@ export {
   type FakeServerOptions,
 } from './fakeServer'
 /** @internal Use `@inertiajs/core/testing` instead. */
-export { activeTestScope, onTestScopeReset, type TestScope, type TestScopeOptions } from './testScope'
+export { activeTestScope, onTestScopeReset, type TestPage, type TestScope, type TestScopeOptions } from './testScope'
 /** @internal The current URL: the browser's location, or the in-memory one inside a test scope. */
 export const currentLocation = (): Location | URL => environment.location()
 

@@ -13,7 +13,12 @@ import { prefetchedRequests } from './prefetched'
 import { progress } from './progress'
 import { Response as InertiaResponse } from './response'
 import type { Router } from './router'
-import type { HttpClient, HttpRequestConfig, HttpResponse } from './types'
+import type { HttpClient, HttpRequestConfig, HttpResponse, Page, PageProps } from './types'
+
+/** A page to start a test app on. Everything is optional, and `props.errors` defaults to `{}`. */
+export type TestPage<SharedProps extends PageProps = PageProps> = Partial<Omit<Page<SharedProps>, 'props'>> & {
+  props?: Partial<Page<SharedProps>['props']> & PageProps
+}
 
 export interface TestScopeOptions {
   /** The URL the scope starts on. Relative URLs resolve against the current origin. Defaults to `/`. */

@@ -20,6 +20,7 @@ export {
   type FakeRoutes,
   type FakeServer,
   type FakeServerOptions,
+  type TestPage,
   type TestScope,
   type TestScopeOptions,
 } from './index'
