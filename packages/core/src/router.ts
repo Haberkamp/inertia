@@ -101,6 +101,17 @@ export class Router {
     })
   }
 
+  /**
+   * Cancels everything in flight and forgets pending work. Only used when switching between isolated test scopes.
+   */
+  public reset(): void {
+    this.cancelAll()
+    this.syncRequestStream = new RequestStream({ maxConcurrent: 1, interruptible: true })
+    this.asyncRequestStream = new RequestStream({ maxConcurrent: Infinity, interruptible: false })
+    this.clientVisitQueue = new Queue<Promise<void>>()
+    this.pendingOptimisticCallback = undefined
+  }
+
   public optimistic<TProps>(callback: OptimisticCallback<TProps>): this {
     this.pendingOptimisticCallback = callback as OptimisticCallback
 

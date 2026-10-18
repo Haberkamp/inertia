@@ -1,5 +1,7 @@
 import { Config } from './config'
+import { environment } from './environment'
 import { Router } from './router'
+import { createTestScope as createScope, testScopeOwnership, type TestScope, type TestScopeOptions } from './testScope'
 
 export { UseFormUtils } from './useFormUtils'
 
@@ -48,4 +50,17 @@ export const router = new Router()
 /** @internal Use `@inertiajs/core/testing` instead. */
 export { MemoryHistory } from './environment'
 /** @internal Use `@inertiajs/core/testing` instead. */
-export { createTestScope, type TestScope, type TestScopeOptions } from './testScope'
+export { activeTestScope, onTestScopeReset, type TestScope, type TestScopeOptions } from './testScope'
+/** @internal The current URL: the browser's location, or the in-memory one inside a test scope. */
+export const currentLocation = (): Location | URL => environment.location()
+
+/** @internal Use `createTestScope` from `@inertiajs/core/testing` instead. */
+export const createTestScope = (options?: TestScopeOptions): TestScope => createScope(router, options)
+
+/** @internal Used by the adapters' test components. */
+export const testScopes = {
+  acquire: (owner: object, options: TestScopeOptions = {}): TestScope =>
+    testScopeOwnership.acquire(router, owner, options),
+  mount: (owner: object): void => testScopeOwnership.mount(owner),
+  release: (owner: object): void => testScopeOwnership.release(owner),
+}

@@ -23,11 +23,19 @@ import { SessionStorage } from './sessionStorage'
 import { ActiveVisit, ErrorBag, Errors, HttpResponse, Page, PageProps } from './types'
 import { hrefToUrl, isSameUrlWithoutHash, setHashIfSameUrl } from './url'
 
-const queue = new Queue<Promise<boolean | void>>()
+let queue = new Queue<Promise<boolean | void>>()
 
 export class Response {
   protected wasPrefetched = false
   protected processed = false
+  protected generation = environment.generation()
+
+  /**
+   * Drops responses waiting to be processed. Only used when switching between isolated test scopes.
+   */
+  public static reset(): void {
+    queue = new Queue<Promise<boolean | void>>()
+  }
 
   constructor(
     protected requestParams: RequestParams,
@@ -60,6 +68,10 @@ export class Response {
   }
 
   public async process() {
+    if (this.isStale()) {
+      return
+    }
+
     if (this.requestParams.all().prefetch) {
       this.wasPrefetched = true
       this.requestParams.all().prefetch = false
@@ -94,9 +106,17 @@ export class Response {
 
     await history.processQueue()
 
+    if (this.isStale()) {
+      return
+    }
+
     history.preserveUrl = this.requestParams.all().preserveUrl
 
     await this.setPage()
+
+    if (this.isStale()) {
+      return
+    }
 
     const { flash } = currentPage.get()
 
@@ -128,6 +148,11 @@ export class Response {
     await this.requestParams.all().onSuccess(currentPage.get())
 
     history.preserveUrl = false
+  }
+
+  // The test scope this response belongs to has been disposed
+  protected isStale(): boolean {
+    return this.generation !== environment.generation()
   }
 
   public mergeParams(params: ActiveVisit) {

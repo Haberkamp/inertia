@@ -8,7 +8,7 @@ import { SessionStorage } from './sessionStorage'
 import { Page, ScrollRegion } from './types'
 
 const isServer = typeof window === 'undefined'
-const queue = new Queue<Promise<void>>()
+let queue = new Queue<Promise<void>>()
 const isChromeIOS = !isServer && /CriOS/.test(window.navigator.userAgent)
 
 class History {
@@ -18,6 +18,16 @@ class History {
   protected current: Partial<Page> = {}
   // We need initialState for `restore`
   protected initialState: Partial<Page> | null = null
+
+  /**
+   * Forgets everything about the current history. Only used when switching between isolated test scopes.
+   */
+  public reset(): void {
+    queue = new Queue<Promise<void>>()
+    this.preserveUrl = false
+    this.current = {}
+    this.initialState = null
+  }
 
   public remember(data: unknown, key: string): void {
     this.replaceState({
@@ -49,11 +59,13 @@ class History {
 
     this.current = page
 
-    queue.add(() => {
+    const generation = environment.generation()
+
+    this.enqueue(() => {
       return this.getPageData(page).then((data) => {
         // Defer history.pushState to the next event loop tick to prevent timing conflicts.
         // Ensure any previous history.replaceState completes before pushState is executed.
-        const doPush = () => this.doPushState({ page: data }, page.url).then(() => cb?.())
+        const doPush = () => this.doPushState({ page: data }, page.url, generation).then(() => cb?.())
 
         if (isChromeIOS) {
           return new Promise((resolve) => {
@@ -88,6 +100,13 @@ class History {
     })
   }
 
+  protected enqueue(task: () => Promise<void>): void {
+    const generation = environment.generation()
+
+    // Writes queued by a test scope that has since been disposed must not land in the next one
+    queue.add(() => (generation === environment.generation() ? task() : Promise.resolve()))
+  }
+
   public processQueue(): Promise<void> {
     return queue.process()
   }
@@ -119,7 +138,7 @@ class History {
   }
 
   public saveScrollPositions(scrollRegions: ScrollRegion[]): void {
-    queue.add(() => {
+    this.enqueue(() => {
       return Promise.resolve().then(() => {
         if (!environment.history().state?.page) {
           return
@@ -138,7 +157,7 @@ class History {
   }
 
   public saveDocumentScrollPosition(scrollRegion: ScrollRegion): void {
-    queue.add(() => {
+    this.enqueue(() => {
       return Promise.resolve().then(() => {
         if (!environment.history().state?.page) {
           return
@@ -186,11 +205,13 @@ class History {
 
     this.current = page
 
-    queue.add(() => {
+    const generation = environment.generation()
+
+    this.enqueue(() => {
       return this.getPageData(page).then((data) => {
         // Defer history.replaceState to the next event loop tick to prevent timing conflicts.
         // Ensure any previous history.pushState completes before replaceState is executed.
-        const doReplace = () => this.doReplaceState({ page: data }, page.url).then(() => cb?.())
+        const doReplace = () => this.doReplaceState({ page: data }, page.url, generation).then(() => cb?.())
 
         if (isChromeIOS) {
           return new Promise((resolve) => {
@@ -236,8 +257,13 @@ class History {
       documentScrollPosition?: ScrollRegion
     },
     url?: string,
+    generation: number = environment.generation(),
   ): Promise<void> {
     return this.withThrottleProtection(() => {
+      if (generation !== environment.generation()) {
+        return
+      }
+
       try {
         environment.history().replaceState(
           {
@@ -266,8 +292,13 @@ class History {
       documentScrollPosition?: ScrollRegion
     },
     url: string,
+    generation: number = environment.generation(),
   ): Promise<void> {
     return this.withThrottleProtection(() => {
+      if (generation !== environment.generation()) {
+        return
+      }
+
       try {
         environment.history().pushState(data, url)
       } catch (error) {

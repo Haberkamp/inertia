@@ -34,6 +34,7 @@ const browserHistory: HistoryEnvironment = {
 
 let historyEnvironment: HistoryEnvironment = browserHistory
 let storageEnvironment: Storage | null = null
+let generation = 0
 
 export const environment = {
   history(): HistoryEnvironment {
@@ -52,14 +53,24 @@ export const environment = {
     return historyEnvironment !== browserHistory
   },
 
+  /**
+   * Changes whenever a test scope starts or ends, so async work can tell
+   * that the scope it was started in is gone.
+   */
+  generation(): number {
+    return generation
+  },
+
   use({ history, sessionStorage }: { history: HistoryEnvironment; sessionStorage: Storage }): void {
     historyEnvironment = history
     storageEnvironment = sessionStorage
+    generation++
   },
 
   restore(): void {
     historyEnvironment = browserHistory
     storageEnvironment = null
+    generation++
   },
 }
 

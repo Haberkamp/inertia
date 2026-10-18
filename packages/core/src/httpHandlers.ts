@@ -6,6 +6,19 @@ class HttpHandlers {
   protected responseHandlers: HttpResponseHandler[] = []
   protected errorHandlers: HttpErrorHandler[] = []
 
+  /** @internal Used by test scopes to undo handlers registered inside them. */
+  public snapshot(): VoidFunction {
+    const requestHandlers = [...this.requestHandlers]
+    const responseHandlers = [...this.responseHandlers]
+    const errorHandlers = [...this.errorHandlers]
+
+    return () => {
+      this.requestHandlers = requestHandlers
+      this.responseHandlers = responseHandlers
+      this.errorHandlers = errorHandlers
+    }
+  }
+
   public onRequest(handler: HttpRequestHandler): () => void {
     this.requestHandlers.push(handler)
 
