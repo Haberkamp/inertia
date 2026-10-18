@@ -1,4 +1,4 @@
-import { isSameUrlWithoutQueryOrHash, partialReloadRequestsSomeProps, router } from '@inertiajs/core'
+import { currentLocation, isSameUrlWithoutQueryOrHash, partialReloadRequestsSomeProps, router } from '@inertiajs/core'
 import { get } from 'es-toolkit/compat'
 import { computed, defineComponent, Fragment, h, onMounted, onUnmounted, ref, type SlotsType } from 'vue'
 import { usePage } from './app'
@@ -32,7 +32,7 @@ export default defineComponent({
 
         if (
           visit.preserveState === true &&
-          isSameUrlWithoutQueryOrHash(visit.url, window.location) &&
+          isSameUrlWithoutQueryOrHash(visit.url, currentLocation()) &&
           partialReloadRequestsSomeProps(visit, keys.value)
         ) {
           activeReloads.add(visit)

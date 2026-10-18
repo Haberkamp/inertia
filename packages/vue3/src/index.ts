@@ -3,6 +3,8 @@ import type { VueInertiaAppConfig } from './types'
 
 export { http, progress, router } from '@inertiajs/core'
 export { default as App, usePage } from './app'
+/** @internal Used by `@inertiajs/vue3/testing`. */
+export { plugin } from './app'
 export { default as createInertiaApp } from './createInertiaApp'
 export { default as Deferred } from './deferred'
 export { createForm, default as Form, useFormContext } from './form'

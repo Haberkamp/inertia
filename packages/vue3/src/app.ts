@@ -6,6 +6,7 @@ import {
   isPropsObject,
   isPropsObjectOrCallback,
   normalizeLayouts,
+  onTestScopeReset,
   Page,
   PageProps,
   resolveServerHead,
@@ -86,6 +87,15 @@ let pageAccessor: Page | null = null
 const layout = shallowRef(null)
 const key = ref<number | undefined>(undefined)
 export let headManager: HeadManager
+
+// Each test scope mounts its own app, so nothing from the previous one may linger
+onTestScopeReset(() => {
+  component.value = undefined
+  page.value = undefined
+  key.value = undefined
+  layout.value = null
+  resetLayoutProps()
+})
 
 const App: InertiaApp = defineComponent({
   name: 'Inertia',
